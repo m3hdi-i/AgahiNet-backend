@@ -1,0 +1,4 @@
+asyncpg
+uvicorn
+fastapi
+starlette
