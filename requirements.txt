@@ -2,3 +2,6 @@ asyncpg
 uvicorn
 fastapi
 starlette
+PyJWT
+cryptography
+pydantic
