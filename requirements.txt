@@ -5,3 +5,4 @@ starlette
 PyJWT
 cryptography
 pydantic
+python-multipart
