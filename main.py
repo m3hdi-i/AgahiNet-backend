@@ -4,7 +4,7 @@ import string
 import jwt
 import uvicorn
 from fastapi import FastAPI, WebSocket, UploadFile, File, Depends
-from jwt import InvalidSignatureError, ExpiredSignatureError
+from jwt import InvalidSignatureError, ExpiredSignatureError, DecodeError
 from starlette.requests import Request
 from starlette.responses import Response, JSONResponse, FileResponse
 from starlette.websockets import WebSocketDisconnect
@@ -31,7 +31,7 @@ def verify_token(headers):
                 payload = jwt.decode(jwt_token, key=secret, algorithms=['HS256', ])
                 uid = payload['uid']
                 return uid
-            except (InvalidSignatureError, ExpiredSignatureError):
+            except (InvalidSignatureError, ExpiredSignatureError,DecodeError):
                 return None
     return None
 
@@ -119,12 +119,11 @@ async def edit_ad(edit: EditAd, uid:str = Depends(auth_user)):
 
 @app.get("/api/ad/remove")
 async def remove_ad(ad_id, uid:str = Depends(auth_user)):
-    res=await db.remove_ad(ad_id)
+    res=await db.remove_ad(ad_id,uid)
     return JSONResponse(content={"status": "ok"}) if res else HTTPException(400)
 
-
 @app.post("/api/ad/search")
-async def search_ads(filters: SearchAd, uid:str = Depends(auth_user)):
+async def search_ads(filters: SearchAd):
     res=await db.search_ads(filters)
     return Response(jsonify(res), media_type="application/json")
 
@@ -154,7 +153,7 @@ class WsConnectionManager:
     def disconnect(self, uid: str):
         self.active_connections.pop(uid)
 
-    async def send_private_message(self,message: str, sender: str, recipient: str):
+    async def send_private_message(self,message: str, sender: str, recipient: str)->bool:
         if recipient in self.active_connections:
             msg={"status":"update","new_msg":message,"sender":sender}
             await self.active_connections[recipient].send_text(jsonify(msg))
@@ -177,6 +176,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     func = j['func']
                     if func == 'message':
                         await ws_manager.send_private_message(j["message_body"], uid, j["recipient"])
+                        await websocket.send_text(jsonify({"status": "ok"}))
                     elif func == 'get_user_fullname':
                         data = {"status": "ok", "fullname": await db.get_user_fullname(j['uid'])}
                         await websocket.send_text(jsonify(data))
@@ -188,10 +188,9 @@ async def websocket_endpoint(websocket: WebSocket):
                                 "messages": await db.get_messages_of_room(uid, j['cid'], j['limit'], j['offset'])}
                         await websocket.send_text(jsonify(data))
                     else:
-                        err = {"status": "error"}
-                        await websocket.send_text(jsonify(err))
+                        raise ValueError()
 
-                except KeyError:
+                except (ValueError,KeyError):
                     err = {"status": "error", "code": 400}
                     await websocket.send_text(jsonify(err))
 
@@ -214,4 +213,4 @@ async def shutdown_event():
     print('Postgresql pool closed.')
 
 
-uvicorn.run(app)
+uvicorn.run(app,port=8000)

@@ -28,9 +28,8 @@ async def add_message(messge_body, creator_id, recipient_id):
         async with pg_pool.acquire() as conn:
             res = await conn.execute(f"INSERT INTO {message_tbl}(message_body,creator_id,recipient_id) VALUES('{messge_body}',{creator_id},{recipient_id})")
 
-        if res:
-            affected_rows_count = int(res.split()[2]) if res.split()[0] == 'INSERT' else 0
-            return affected_rows_count
+        if res == "INSERT 0 1":
+            return True
 
     except (PostgresError, KeyError, IndexError) as e:
         print(e)
@@ -244,6 +243,10 @@ async def search_ads(s:SearchAd):
 async def edit_ad(e:EditAd,uid):
     global pg_pool
     try:
+        current_ad=await get_ad(e.ad_id)
+        if str(uid) != str(current_ad['creator']):
+            raise PostgresError('Invalid uid!')
+
         async with pg_pool.acquire() as conn:
             async with conn.transaction():
                 images_list_old = e.images_list_old if e.images_list_old else []
@@ -260,7 +263,6 @@ async def edit_ad(e:EditAd,uid):
                         q=f"UPDATE {image_tbl} SET ad_id={e.ad_id} WHERE image_id IN ({','.join(add_list)})"
                         await conn.execute(q)
 
-                #main_image_id = e.main_image_id if e.main_image_id else 'NULL'
                 if not e.main_image_id:
                     e.main_image_id = 'NULL'
                 if not e.price:
@@ -276,9 +278,13 @@ async def edit_ad(e:EditAd,uid):
         print(e)
     return None
 
-async def remove_ad(ad_id):
+async def remove_ad(ad_id,uid):
     global pg_pool
     try:
+        current_ad=await get_ad(ad_id)
+        if str(uid) != str(current_ad['creator']):
+            raise PostgresError('Invalid uid!')
+
         async with pg_pool.acquire() as conn:
             res = await conn.execute(f"DELETE FROM {ad_tbl} WHERE ad_id={ad_id}")
 
@@ -308,8 +314,7 @@ async def create_bookmark(uid,ad_id):
         async with pg_pool.acquire() as conn:
             res = await conn.execute(
                 f"INSERT INTO {bookmark_tbl}(uid,ad_id) VALUES('{uid}',{ad_id})")
-            affected_rows_count = int(res.split()[2]) if res.split()[0] == 'INSERT' else 0
-        if affected_rows_count==1:
+        if res=="INSERT 0 1":
             return True
 
     except (PostgresError, KeyError, IndexError) as e:
