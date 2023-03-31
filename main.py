@@ -213,4 +213,4 @@ async def shutdown_event():
     print('Postgresql pool closed.')
 
 
-uvicorn.run(app,port=8000)
+# uvicorn.run(app,port=8000)
