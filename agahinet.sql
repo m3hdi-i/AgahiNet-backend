@@ -1,4 +1,6 @@
 
+CREATE SCHEMA IF NOT EXISTS agahinet;
+
 -- ----------------------------
 -- Sequence structure for Ad_ad_id_seq
 -- ----------------------------
