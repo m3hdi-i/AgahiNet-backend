@@ -45,7 +45,7 @@ def auth_user(req: Request):
 
 @app.post("/api/signup")
 async def signup_user(user: UserSignup):
-    user = await db.signup_user(user.fullname, user.email, user.password)
+    user = await db.signup_user(user.fullname, user.email, user.password,user.phone_number)
     if user:
         payload_data = {'uid': user['uid']}
         token = jwt.encode(payload=payload_data,key=secret)
@@ -213,4 +213,4 @@ async def shutdown_event():
     print('Postgresql pool closed.')
 
 
-# uvicorn.run(app,port=8000)
+uvicorn.run(app,port=8000)

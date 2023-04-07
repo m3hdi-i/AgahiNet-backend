@@ -11,6 +11,7 @@ class UserSignup(BaseModel):
     fullname:str
     email: str
     password: str
+    phone_number:str
 
 class CreateAd(BaseModel):
     title:str

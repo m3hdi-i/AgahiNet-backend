@@ -8,13 +8,13 @@ from model import CreateAd, SearchAd, EditAd
 
 pg_pool: Any
 
-user_tbl = 'iagahi."User"'
-message_tbl = 'iagahi."Message"'
-image_tbl='iagahi."Image"'
-city_tbl='iagahi."City"'
-category_tbl='iagahi."Category"'
-bookmark_tbl='iagahi."Bookmark"'
-ad_tbl='iagahi."Ad"'
+user_tbl = 'agahinet."User"'
+message_tbl = 'agahinet."Message"'
+image_tbl='agahinet."Image"'
+city_tbl='agahinet."City"'
+category_tbl='agahinet."Category"'
+bookmark_tbl='agahinet."Bookmark"'
+ad_tbl='agahinet."Ad"'
 
 async def get_pg_pool():
     return await asyncpg.create_pool(user='postgres', password='bob123456', database='postgres', host='127.0.0.1')
@@ -100,12 +100,12 @@ async def authenticate_user(email: str, password: str):
         print(e)
     return None
 
-async def signup_user(fullname, email, password):
+async def signup_user(fullname, email, password,phone_number):
     global pg_pool
     try:
         async with pg_pool.acquire() as conn:
             hashed_password = hashlib.sha256(password.encode('utf-8')).hexdigest()
-            query = f"INSERT INTO {user_tbl}(fullname,password,email) VALUES('{fullname}','{hashed_password}','{email}') RETURNING uid,fullname"
+            query = f"INSERT INTO {user_tbl}(fullname,password,email,phone_number) VALUES ('{fullname}','{hashed_password}','{email}','{phone_number}') RETURNING uid,fullname"
             res = await conn.fetchrow(query)
 
         if res:
