@@ -51,7 +51,7 @@ async def signup_user(user: UserSignup):
         token = jwt.encode(payload=payload_data,key=secret)
         res={"message": "ok","user":user,"access-token": token}
 
-        return JSONResponse(content=res)
+        return Response(jsonify(res), media_type="application/json")
     else:
         return JSONResponse(content={"message": "failed"})
 
@@ -65,7 +65,7 @@ async def signin_user(user: UserSignin):
         return Response(jsonify(res), media_type="application/json")
 
     else:
-        return HTTPException(status_code=401, detail="Incorrect email or password")
+        return JSONResponse(content={"message": "failed"})
 
 
 @app.post("/api/uploadimage")
