@@ -51,7 +51,7 @@ async def signup_user(user: UserSignup):
         token = jwt.encode(payload=payload_data,key=secret)
         res={"message": "ok","user":user,"access-token": token}
 
-        return JSONResponse(content=res)
+        return Response(jsonify(res), media_type="application/json")
     else:
         return JSONResponse(content={"message": "failed"})
 
@@ -65,7 +65,7 @@ async def signin_user(user: UserSignin):
         return Response(jsonify(res), media_type="application/json")
 
     else:
-        return HTTPException(status_code=401, detail="Incorrect email or password")
+        return JSONResponse(content={"message": "failed"})
 
 
 @app.post("/api/uploadimage")
@@ -101,6 +101,15 @@ async def get_cities():
 async def get_categories():
     categories=await db.get_categories()
     return Response(jsonify(categories), media_type="application/json")
+
+@app.get("/api/contact_info")
+async def get_coontact_info_of_user(uid):
+    phone_number = await db.get_phone_number_of_user(uid)
+    if phone_number:
+        res={"uid":uid, "phone_number": phone_number}
+        return Response(jsonify(res), media_type="application/json")
+    else:
+        return HTTPException(404)
 
 @app.get("/api/ad")
 async def get_ad(ad_id):
@@ -213,4 +222,4 @@ async def shutdown_event():
     print('Postgresql pool closed.')
 
 
-uvicorn.run(app,port=8000)
+

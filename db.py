@@ -183,6 +183,18 @@ async def create_ad(ad:CreateAd,uid):
         print(e)
     return None
 
+async def get_phone_number_of_user(uid):
+    global pg_pool
+    try:
+        async with pg_pool.acquire() as conn:
+            query = f"SELECT phone_number FROM {user_tbl} WHERE uid={uid}"
+            record = await conn.fetchrow(query)
+        if record:
+            return record['phone_number']
+
+    except (PostgresError, KeyError, IndexError) as e:
+        print(e)
+    return None
 
 async def get_ad(ad_id):
     global pg_pool
