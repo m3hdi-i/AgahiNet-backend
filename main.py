@@ -92,6 +92,14 @@ async def get_image_by_id(image_id):
     else:
         return HTTPException(404)
 
+@app.get("/api/ad/{ad_id}/images")
+async def get_all_images_of_ad(ad_id):
+    images = await db.get_all_images_of_ad(ad_id)
+    if images:
+        return Response(jsonify(images), media_type="application/json")
+    else:
+        return JSONResponse(content=[])
+
 @app.get("/api/cities")
 async def get_cities():
     cities=await db.get_cities()
@@ -103,7 +111,7 @@ async def get_categories():
     return Response(jsonify(categories), media_type="application/json")
 
 @app.get("/api/contact_info")
-async def get_coontact_info_of_user(uid):
+async def get_contact_info_of_user(uid):
     phone_number = await db.get_phone_number_of_user(uid)
     if phone_number:
         res={"uid":uid, "phone_number": phone_number}

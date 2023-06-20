@@ -139,6 +139,19 @@ async def get_url_of_image(image_id):
         print(e)
     return None
 
+async def get_all_images_of_ad(ad_id):
+    global pg_pool
+    try:
+        async with pg_pool.acquire() as conn:
+            query = f"SELECT image_id FROM {image_tbl} WHERE ad_id={ad_id}"
+            records = await conn.fetch(query)
+        if records:
+            return [r['image_id'] for r in records]
+    except (PostgresError, KeyError, IndexError) as e:
+        print(e)
+    return None
+
+
 async def get_cities():
     global pg_pool
     try:
