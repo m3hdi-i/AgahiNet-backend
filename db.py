@@ -91,7 +91,7 @@ async def authenticate_user(email: str, password: str):
     try:
         async with pg_pool.acquire() as conn:
             hashed_password = hashlib.sha256(password.encode('utf-8')).hexdigest()
-            query = f"SELECT uid,fullname FROM {user_tbl} WHERE email='{email}' and password='{hashed_password}'"
+            query = f"SELECT uid,fullname,email,phone_number FROM {user_tbl} WHERE email='{email}' and password='{hashed_password}'"
             res = await conn.fetchrow(query)
         if res:
             return dict(res)
@@ -105,7 +105,7 @@ async def signup_user(fullname, email, password,phone_number):
     try:
         async with pg_pool.acquire() as conn:
             hashed_password = hashlib.sha256(password.encode('utf-8')).hexdigest()
-            query = f"INSERT INTO {user_tbl}(fullname,password,email,phone_number) VALUES ('{fullname}','{hashed_password}','{email}','{phone_number}') RETURNING uid,fullname"
+            query = f"INSERT INTO {user_tbl}(fullname,password,email,phone_number) VALUES ('{fullname}','{hashed_password}','{email}','{phone_number}') RETURNING uid,fullname,email,phone_number"
             res = await conn.fetchrow(query)
 
         if res:
