@@ -264,6 +264,28 @@ async def search_ads(s:SearchAd):
 
     return None
 
+async def get_my_ads(uid):
+    global pg_pool
+    try:
+        async with pg_pool.acquire() as conn:
+            query = f"SELECT * FROM {ad_tbl} WHERE creator={uid} ORDER BY created_at DESC"
+            records = await conn.fetch(query)
+
+        result=[]
+        for r in records:
+            item=dict(r)
+            if r['price']:
+                item['price'] = '{:f}'.format(r['price'].normalize())
+            result.append(item)
+
+        return result
+
+    except (PostgresError, KeyError, IndexError) as e:
+        print(e)
+
+    return None
+
+
 
 async def edit_ad(e:EditAd,uid):
     global pg_pool

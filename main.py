@@ -144,6 +144,13 @@ async def search_ads(filters: SearchAd):
     res=await db.search_ads(filters)
     return Response(jsonify(res), media_type="application/json")
 
+
+@app.get("/api/myads")
+async def get_my_ads(uid:str = Depends(auth_user)):
+    res=await db.get_my_ads(uid)
+    return Response(jsonify(res), media_type="application/json")
+
+
 @app.get("/api/bookmark")
 async def get_bookmarks(uid:str = Depends(auth_user)):
     res=await db.get_bookmarks_of_user(uid)
