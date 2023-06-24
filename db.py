@@ -3,8 +3,7 @@ import hashlib
 from typing import Any
 import asyncpg
 from asyncpg import PostgresError
-
-from model import CreateAd, SearchAd, EditAd
+from models import CreateAd, SearchAd, EditAd
 
 pg_pool: Any
 
@@ -348,12 +347,26 @@ async def get_bookmarks_of_user(uid):
         async with pg_pool.acquire() as conn:
             query = f"SELECT * FROM ( SELECT ad_id, created_at AS b_created_at FROM {bookmark_tbl} WHERE uid = {uid} ) AS bkm INNER JOIN {ad_tbl} USING ( ad_id ) ORDER BY b_created_at DESC"
             records = await conn.fetch(query)
-        if records:
-            return [dict(i) for i in records]
+            result=[]
+            for r in records:
+                result.append(dict(r))
+            return result
+
     except (PostgresError, KeyError, IndexError) as e:
         print(e)
     return None
 
+async def has_bookmark(uid,ad_id):
+    global pg_pool
+    try:
+        async with pg_pool.acquire() as conn:
+            query = f"SELECT * FROM {bookmark_tbl} WHERE uid = {uid} AND ad_id = {ad_id}"
+            record = await conn.fetchrow(query)
+            return record
+
+    except (PostgresError, KeyError, IndexError) as e:
+        print(e)
+    return None
 
 async def create_bookmark(uid,ad_id):
     global pg_pool

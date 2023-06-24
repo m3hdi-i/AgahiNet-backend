@@ -9,7 +9,7 @@ from starlette.requests import Request
 from starlette.responses import Response, JSONResponse, FileResponse
 from starlette.websockets import WebSocketDisconnect
 from fastapi import HTTPException
-from model import *
+from models import *
 import db
 
 app = FastAPI()
@@ -165,6 +165,13 @@ async def create_bookmark(ad_id, uid:str = Depends(auth_user)):
 async def remove_bookmark(ad_id, uid:str = Depends(auth_user)):
     res=await db.remove_bookmark(uid,ad_id)
     return JSONResponse(content={"status": "ok"}) if res else HTTPException(400)
+
+@app.get("/api/has_bookmark")
+async def has_bookmark(ad_id, uid:str = Depends(auth_user)):
+    res=await db.has_bookmark(uid,ad_id)
+    has = True if res else False
+    return JSONResponse(content={"has_bookmark": has})
+
 
 class WsConnectionManager:
     def __init__(self):
