@@ -192,6 +192,11 @@ class WsConnectionManager:
 
 ws_manager = WsConnectionManager()
 
+def ws_response(res_type,data):
+    return jsonify({"response_type": res_type, "data": data})
+
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     uid=verify_token(websocket.headers)
@@ -207,23 +212,24 @@ async def websocket_endpoint(websocket: WebSocket):
                     func = j['func']
                     if func == 'message':
                         await ws_manager.send_private_message(j["message_body"], uid, j["recipient"])
-                        await websocket.send_text(jsonify({"status": "ok"}))
+                        res = ws_response('message', {"status":"ok"})
+                        await websocket.send_text(res)
                     elif func == 'get_user_fullname':
-                        data = {"status": "ok", "fullname": await db.get_user_fullname(j['uid'])}
-                        await websocket.send_text(jsonify(data))
+                        res = ws_response('get_user_fullname', {"fullname" : await db.get_user_fullname(j['uid'])})
+                        await websocket.send_text(res)
                     elif func == 'get_chat_list':
-                        data = {"status": "ok", "list": await db.get_chatlist_of_user(uid)}
-                        await websocket.send_text(jsonify(data))
+                        res = ws_response('get_chat_list', {"list": await db.get_chatlist_of_user(uid)})
+                        await websocket.send_text(res)
                     elif func == 'get_room_messages':
-                        data = {"status": "ok",
-                                "messages": await db.get_messages_of_room(uid, j['cid'], j['limit'], j['offset'])}
-                        await websocket.send_text(jsonify(data))
+                        res = ws_response('get_room_messages',
+                                          {"messages": await db.get_messages_of_room(uid, j['cid'], j['limit'], j['offset'])})
+                        await websocket.send_text(res)
                     else:
                         raise ValueError()
 
                 except (ValueError,KeyError):
-                    err = {"status": "error", "code": 400}
-                    await websocket.send_text(jsonify(err))
+                    res = ws_response('error', {"status": "400"})
+                    await websocket.send_text(res)
 
         except WebSocketDisconnect:
             ws_manager.disconnect(uid)
@@ -231,7 +237,18 @@ async def websocket_endpoint(websocket: WebSocket):
     else:
         await websocket.close()
 
+@app.get("/")
+async def get():
+    return Response(jsonify({"message":"OK"}), media_type="application/json")
 
+
+@app.websocket("/xs")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        data = await websocket.receive_text()
+        await websocket.send_text(f"Message text was: {data}")
+        
 @app.on_event("startup")
 async def startup_event():
     db.pg_pool=await db.get_pg_pool()
