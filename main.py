@@ -220,8 +220,10 @@ async def websocket_endpoint(websocket: WebSocket):
                         res = ws_response('get_chat_list', {"list": await db.get_chatlist_of_user(uid)})
                         await websocket.send_text(res)
                     elif func == 'get_room_messages':
+                        limit = j['limit'] if 'limit' in j else None
+                        offset = j['offset'] if 'offset' in j else None
                         res = ws_response('get_room_messages',
-                                          {"messages": await db.get_messages_of_room(uid, j['cid'], j['limit'], j['offset'])})
+                                          {"messages": await db.get_messages_of_room(uid, j['cid'], limit, offset)})
                         await websocket.send_text(res)
                     else:
                         raise ValueError()
