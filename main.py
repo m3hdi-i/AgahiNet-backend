@@ -19,7 +19,7 @@ def jsonify(d): return json.dumps(d,default=str,ensure_ascii=False)
 
 def get_random_string(length):
     characters = string.ascii_letters + string.digits
-    result_str = ''.join(random.choice(characters) for i in range(length))
+    result_str = ''.join(random.choice(characters) for _ in range(length))
     return result_str
 
 def verify_token(headers):
@@ -30,7 +30,7 @@ def verify_token(headers):
             try:
                 payload = jwt.decode(jwt_token, key=secret, algorithms=['HS256', ])
                 uid = payload['uid']
-                return uid
+                return int(uid)
             except (InvalidSignatureError, ExpiredSignatureError,DecodeError):
                 return None
     return None
@@ -38,7 +38,7 @@ def verify_token(headers):
 def auth_user(req: Request):
     v=verify_token(req.headers)
     if v:
-        return str(v)
+        return v
     else:
         raise HTTPException(401)
 
@@ -69,7 +69,7 @@ async def signin_user(user: UserSignin):
 
 
 @app.post("/api/uploadimage")
-async def upload_image(file: UploadFile = File(...), uid:str = Depends(auth_user)):
+async def upload_image(file: UploadFile = File(...), uid:int = Depends(auth_user)):
     if not file.content_type.startswith('image/'):
         return HTTPException(status_code=400, detail="Invalid file")
 
@@ -125,17 +125,17 @@ async def get_ad(ad_id):
     return Response(jsonify(ad), media_type="application/json")
 
 @app.post("/api/ad/create")
-async def create_ad(ad: CreateAd, uid:str = Depends(auth_user)):
+async def create_ad(ad: CreateAd, uid:int = Depends(auth_user)):
     res=await db.create_ad(ad,uid)
     return JSONResponse(content={"status": "ok"}) if res else HTTPException(400)
 
 @app.post("/api/ad/edit")
-async def edit_ad(edit: EditAd, uid:str = Depends(auth_user)):
+async def edit_ad(edit: EditAd, uid:int = Depends(auth_user)):
     res=await db.edit_ad(edit,uid)
     return JSONResponse(content={"status": "ok"}) if res else HTTPException(400)
 
 @app.get("/api/ad/remove")
-async def remove_ad(ad_id, uid:str = Depends(auth_user)):
+async def remove_ad(ad_id, uid:int = Depends(auth_user)):
     res=await db.remove_ad(ad_id,uid)
     return JSONResponse(content={"status": "ok"}) if res else HTTPException(400)
 
@@ -146,60 +146,59 @@ async def search_ads(filters: SearchAd):
 
 
 @app.get("/api/myads")
-async def get_my_ads(uid:str = Depends(auth_user)):
+async def get_my_ads(uid:int = Depends(auth_user)):
     res=await db.get_my_ads(uid)
     return Response(jsonify(res), media_type="application/json")
 
 
 @app.get("/api/bookmark")
-async def get_bookmarks(uid:str = Depends(auth_user)):
+async def get_bookmarks(uid:int = Depends(auth_user)):
     res=await db.get_bookmarks_of_user(uid)
     return Response(jsonify(res), media_type="application/json")
 
 @app.get("/api/bookmark/create")
-async def create_bookmark(ad_id, uid:str = Depends(auth_user)):
+async def create_bookmark(ad_id, uid:int = Depends(auth_user)):
     res=await db.create_bookmark(uid,ad_id)
     return JSONResponse(content={"status": "ok"}) if res else HTTPException(400)
 
 @app.get("/api/bookmark/remove")
-async def remove_bookmark(ad_id, uid:str = Depends(auth_user)):
+async def remove_bookmark(ad_id, uid:int = Depends(auth_user)):
     res=await db.remove_bookmark(uid,ad_id)
     return JSONResponse(content={"status": "ok"}) if res else HTTPException(400)
 
 @app.get("/api/has_bookmark")
-async def has_bookmark(ad_id, uid:str = Depends(auth_user)):
+async def has_bookmark(ad_id, uid:int = Depends(auth_user)):
     res=await db.has_bookmark(uid,ad_id)
     has = True if res else False
     return JSONResponse(content={"has_bookmark": has})
 
 
+def ws_response(res_type,data):
+    return jsonify({"response_type": res_type, "data": data})
+
 class WsConnectionManager:
     def __init__(self):
-        self.active_connections: dict[str, WebSocket] = {}
+        self.active_connections: dict[int, WebSocket] = {}
 
-    async def connect(self, websocket: WebSocket, uid: str):
+    async def connect(self, websocket: WebSocket, uid: int):
         await websocket.accept()
         self.active_connections[uid] = websocket
 
-    def disconnect(self, uid: str):
+    def disconnect(self, uid: int):
         self.active_connections.pop(uid)
 
-    async def send_private_message(self,message: str, sender: str, recipient: str)->bool:
+    async def send_private_message(self,message: str, sender: int, recipient: int):
         if recipient in self.active_connections:
-            msg={"status":"update","new_msg":message,"sender":sender}
-            await self.active_connections[recipient].send_text(jsonify(msg))
+            msg = ws_response("incoming_message",{"message":message,"sender":sender})
+            await self.active_connections[recipient].send_text(msg)
         await db.add_message(message, sender, recipient)
 
 ws_manager = WsConnectionManager()
 
-def ws_response(res_type,data):
-    return jsonify({"response_type": res_type, "data": data})
-
-
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    uid=verify_token(websocket.headers)
+    uid: int = verify_token(websocket.headers)
 
     if uid:
         await ws_manager.connect(websocket, uid)

@@ -38,7 +38,8 @@ async def get_messages_of_room(u1, u2, limit, offset):
     global pg_pool
     try:
         async with pg_pool.acquire() as conn:
-            query = f"SELECT * FROM {message_tbl} WHERE ((creator_id={u1} AND recipient_id={u2}) OR (creator_id={u2} AND recipient_id={u1})) ORDER BY created_at DESC LIMIT {limit} OFFSET {offset}"
+            limit_offset_clause = f" LIMIT {limit} OFFSET {offset}" if limit and offset else ''
+            query = f"SELECT * FROM {message_tbl} WHERE ((creator_id={u1} AND recipient_id={u2}) OR (creator_id={u2} AND recipient_id={u1})) ORDER BY created_at DESC{limit_offset_clause}"
             records = await conn.fetch(query)
         if records:
             return [dict(i) for i in records]
